@@ -1,0 +1,37 @@
+#include <ros.h>
+#include <HCSR04.h>
+#include "MPU9250.h"
+#include <geometry_msgs/Twist.h>
+MPU9250 mpu;
+UltraSonicDistanceSensor hc1(13,12);
+UltraSonicDistanceSensor hc2(11,10);
+UltraSonicDistanceSensor hc3(9,8);
+ros::NodeHandle nh;
+geometry_msgs::Twist msg;
+ros::Publisher chatter("bot", &msg);
+void setup() {
+    Wire.begin();
+    delay(2000);
+    nh.initNode();
+    nh.advertise(chatter);
+    mpu.setup(0x68);
+
+}
+
+void loop() {
+    if (mpu.update()) {
+        static uint32_t prev_ms = millis();
+        if (millis() > prev_ms + 25) {
+            prev_ms = millis();
+        }
+    }
+    msg.linear.x = mpu.getYaw();
+    msg.linear.y = mpu.getRoll();
+    msg.linear.z = mpu.getPitch();
+    msg.angular.x = hc1.measureDistanceCm();
+    msg.angular.y = hc2.measureDistanceCm();
+    msg.angular.z = hc3.measureDistanceCm();
+    chatter.publish(&msg);
+    nh.spinOnce();
+
+}
